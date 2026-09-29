@@ -25,13 +25,13 @@ The v1 scope covers a complete, bounded demo of this workflow in a controlled sy
 
 ### 2.1 Orders
 
-FR-1: The system shall maintain a distinct order record for each customer order, including customer identity, order creation time, requested fulfillment window if present, and overall order status.
+FR-1: The system shall maintain a distinct order record for each customer order, including customer identity, order creation time, and overall order status.
 
 FR-2: The system shall support partial order fulfillment such that a single order may be split into multiple fulfillment groups, each tied to one warehouse and a subset of items from the original order.
 
 FR-3: The system shall derive the overall order status from the statuses of its fulfillment groups, such that an order is only marked as `DELIVERED` when all of its fulfillment groups are delivered and `PARTIALLY_SHIPPED` is available while some groups remain unshipped or in progress.
 
-FR-4: The system shall reject an order-cancellation request if any fulfillment group for the order has already reached `OUT_FOR_DELIVERY` or a later state unless the cancellation policy explicitly allows a later change by operations.
+FR-4: The system shall reject cancellation of a fulfillment group once it has reached `OUT_FOR_DELIVERY` or a later state.
 
 FR-5: The system shall allow an order to remain in a `PENDING_ALLOCATION` state until the next batch optimization run assigns vehicles and routes to its associated fulfillment groups.
 
@@ -75,7 +75,7 @@ FR-22: The system shall track vehicle operational status so that an unavailable 
 
 ### 2.4 Route Optimization & Assignment
 
-FR-23: The system shall treat vehicle assignment and route sequencing as a single joint optimization problem solved over a batch of pending orders and available vehicles using OR-Tools or an equivalent constrained routing solver.
+FR-23: The system shall treat vehicle assignment and route sequencing as a single joint optimization problem solved over a batch of pending orders and available vehicles using Google OR-Tools.
 
 FR-24: The system shall not assign a new order to a vehicle immediately on order arrival; instead, the order shall enter a `PENDING_ALLOCATION` state and wait for the next batch solve.
 
@@ -159,7 +159,7 @@ NFR-4: The system shall provide a `get_current_user`-style dependency/seam from 
 
 NFR-5: The system shall document that the GPS telemetry is simulated and compressed in time; it must not be represented as real hardware integration or wall-clock field data.
 
-NFR-6: The system shall isolate the v1 operational model from later event-driven and analytics enhancements so that Kafka, Redis stream processing, and advanced optimization services can be introduced without requiring a full rewrite of the core domain model.
+NFR-6: The system shall isolate the v1 operational model from later event-driven and analytics enhancements so that Kafka and advanced optimization services can be introduced without requiring a full rewrite of the core domain model.
 
 NFR-7: The system shall maintain separate operational responsibilities for warehouse selection, route optimization, and telemetry simulation so that future enhancements can replace one component without restructuring the entire platform.
 
@@ -197,32 +197,36 @@ NFR-10: The system shall keep the v1 implementation explainable and modular enou
 - Advanced load and stress testing beyond the separate, later Locust-based performance investigation.
 - Real-time streaming from connected or external devices beyond the bundled simulator.
 
-## 5. Open questions / assumptions requiring sign-off
+## 5. Open Questions / Deferred Design Decisions
+
+### Genuine unresolved product or architecture decisions
 
 OQ-1: The batch solve trigger policy is intentionally set to a placeholder value of 10 pending orders or 15 seconds, whichever occurs first, but the product owner must confirm whether this should be tuned tighter for faster dispatch responsiveness or looser for lower compute churn.
 - Option A: Keep the default as 10/15 and use this as the initial demo policy.
 - Option B: Favor time-based dispatching, such as 15 seconds maximum latency, even with fewer orders.
 - Option C: Favor count-based dispatching, such as 5 or 10 orders, to reduce volatility in the optimization queue.
 
-OQ-2: The domain model still needs a precise definition of which order and fulfillment-group states are considered terminal for operational reporting and cancellation policies.
-- Option A: Treat `DELIVERED`, `CANCELLED`, and `FAILED` as terminal states only.
-- Option B: Treat `PARTIALLY_SHIPPED` as a terminal state at the order level only if all its fulfillment groups are resolved.
-- Option C: Use a richer state machine with explicit `REASSIGNED`, `RETRY_PENDING`, and `ABANDONED` states after disruption.
-
-OQ-3: The exact rules for reservation timeout and release behavior are not yet specified for the v1 product.
+OQ-2: The exact rules for reservation timeout and release behavior are not yet specified for the v1 product.
 - Option A: Expire reservations after a fixed timeout from creation and automatically release them.
 - Option B: Require operator intervention to release reservations on timeout or cancellation.
 - Option C: Use a hybrid model where timeout is automatic for pending allocations and manual release is required after dispatch begins.
 
-OQ-4: The derived order-level status rules need sign-off for edge cases involving mixed success and failure across multiple warehouses.
-- Option A: Mark the order as `PARTIALLY_SHIPPED` when any fulfillment group is active and not all are delivered.
-- Option B: Treat partial fulfillment as a dashboard-only status and keep order status simple until final delivery or cancellation.
-- Option C: Introduce a separate operational state for `PARTIALLY_FAILED` or `REBALANCING` when a subset of groups is re-optimized.
-
-OQ-5: The initial warehouse score weights for distance, workload, and estimated delivery time are intentionally arbitrary placeholders; they should be explicitly reviewed by stakeholders before they are treated as operational policy.
+OQ-3: The initial warehouse score weights for distance, workload, and estimated delivery time are intentionally arbitrary placeholders; they should be explicitly reviewed by stakeholders before they are treated as operational policy.
 - Option A: Use a fixed starting configuration and keep the score as a documented heuristic.
 - Option B: Allow a lightweight admin setting to tune weights in configuration without changing code.
 - Option C: Keep weights hardcoded until the product owner approves a tuning exercise.
+
+### Implementation details to finalize in later design milestones
+
+OQ-4: The precise set of terminal and transitional order and fulfillment-group states should be finalized during the state-machine and API design milestones.
+- Option A: Use a minimal terminal set with `DELIVERED`, `CANCELLED`, and `FAILED`.
+- Option B: Add additional operational states for reallocation and recovery.
+- Option C: Derive some display states in the API layer while keeping the persistence model simpler.
+
+OQ-5: The exact cancellation and status-transition edge cases for mixed fulfillment outcomes should be finalized during database and workflow design.
+- Option A: Keep order status derivation strict and compute partial states only from fulfillment-group outcomes.
+- Option B: Preserve additional intermediate states for operational visibility.
+- Option C: Normalize some edge cases into reporting logic rather than persistence logic.
 
 ## 6. Glossary
 
