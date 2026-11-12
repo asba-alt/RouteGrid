@@ -8,6 +8,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    // Allow tunnel hostnames (e.g. an HTTPS quick-tunnel demo URL) while the
+    // dev server is proxying /api to the local backend.
+    allowedHosts: [".trycloudflare.com"],
     proxy: {
       "/api": { target: "http://127.0.0.1:8000", changeOrigin: true },
       "/health": { target: "http://127.0.0.1:8000", changeOrigin: true },
