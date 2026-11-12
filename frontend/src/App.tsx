@@ -12,6 +12,7 @@ import { ApiError, api } from "./lib/api";
 import DisruptionsPage from "./pages/Disruptions";
 import FleetPage from "./pages/Fleet";
 import HealthPage from "./pages/Health";
+import LoginPage from "./pages/Login";
 import OptimizationPage from "./pages/Optimization";
 import OrdersPage from "./pages/Orders";
 import OverviewPage from "./pages/Overview";
@@ -148,6 +149,18 @@ function Layout() {
             <button className="btn text-xs" onClick={() => setDark((d) => !d)}>
               {dark ? "Light" : "Dark"}
             </button>
+            <button
+              className="btn text-xs"
+              onClick={async () => {
+                try {
+                  await api.logout();
+                } finally {
+                  window.dispatchEvent(new Event("routegrid:unauthorized"));
+                }
+              }}
+            >
+              Sign out
+            </button>
           </div>
         </header>
 
@@ -162,22 +175,47 @@ function Layout() {
 }
 
 export default function App() {
+  const [session, setSession] = useState<"checking" | "in" | "out">("checking");
+
+  useEffect(() => {
+    api
+      .me()
+      .then(() => setSession("in"))
+      .catch(() => setSession("out"));
+
+    const onUnauthorized = () => setSession("out");
+    window.addEventListener("routegrid:unauthorized", onUnauthorized);
+    return () => window.removeEventListener("routegrid:unauthorized", onUnauthorized);
+  }, []);
+
+  if (session === "checking") {
+    return (
+      <div className="grid min-h-screen place-items-center text-sm text-slate-400">
+        Checking session…
+      </div>
+    );
+  }
+
   return (
     <Router>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route index element={<Navigate to="/overview" replace />} />
-          <Route path="/overview" element={<OverviewPage />} />
-          <Route path="/orders" element={<OrdersPage />} />
-          <Route path="/warehouses" element={<WarehousesPage />} />
-          <Route path="/fleet" element={<FleetPage />} />
-          <Route path="/optimization" element={<OptimizationPage />} />
-          <Route path="/tracking" element={<TrackingPage />} />
-          <Route path="/disruptions" element={<DisruptionsPage />} />
-          <Route path="/health" element={<HealthPage />} />
-          <Route path="*" element={<Navigate to="/overview" replace />} />
-        </Route>
-      </Routes>
+      {session === "out" ? (
+        <LoginPage onSignedIn={() => setSession("in")} />
+      ) : (
+        <Routes>
+          <Route element={<Layout />}>
+            <Route index element={<Navigate to="/overview" replace />} />
+            <Route path="/overview" element={<OverviewPage />} />
+            <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/warehouses" element={<WarehousesPage />} />
+            <Route path="/fleet" element={<FleetPage />} />
+            <Route path="/optimization" element={<OptimizationPage />} />
+            <Route path="/tracking" element={<TrackingPage />} />
+            <Route path="/disruptions" element={<DisruptionsPage />} />
+            <Route path="/health" element={<HealthPage />} />
+            <Route path="*" element={<Navigate to="/overview" replace />} />
+          </Route>
+        </Routes>
+      )}
     </Router>
   );
 }

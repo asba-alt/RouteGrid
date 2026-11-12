@@ -12,8 +12,10 @@ export default defineConfig({
     // dev server is proxying /api to the local backend.
     allowedHosts: [".trycloudflare.com"],
     proxy: {
-      "/api": { target: "http://127.0.0.1:8000", changeOrigin: true },
-      "/health": { target: "http://127.0.0.1:8000", changeOrigin: true },
+      // changeOrigin must stay false so the backend sees the browser's Host and
+      // can validate the Origin header (CSRF defence).
+      "/api": { target: "http://127.0.0.1:8000", changeOrigin: false },
+      "/health": { target: "http://127.0.0.1:8000", changeOrigin: false },
     },
   },
   test: {

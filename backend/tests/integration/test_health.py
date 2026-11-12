@@ -52,6 +52,9 @@ def test_openapi_exposes_the_expected_routes():
         "/api/v1/simulation/advance",
         "/api/v1/simulation/positions",
         "/api/v1/reservations/release-expired",
+        "/api/v1/auth/login",
+        "/api/v1/auth/logout",
+        "/api/v1/auth/me",
     }
     assert expected <= set(paths)
 

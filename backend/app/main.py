@@ -1,8 +1,9 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes.auth import router as auth_router
 from app.api.routes.disruptions import router as disruption_router
 from app.api.routes.health import router as health_router
 from app.api.routes.optimization import router as optimization_router
@@ -16,6 +17,7 @@ from app.core.config import settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import RequestContextMiddleware, configure_logging
 from app.core.redis import close_redis, init_redis
+from app.core.security import csrf_protect
 from app.db.engine import create_engine_from_url
 from app.db.session import init_session_factory
 
@@ -39,6 +41,8 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
     description="Real-time urban logistics optimization and fleet management API.",
+    # Origin validation on every state-changing request (CSRF defence).
+    dependencies=[Depends(csrf_protect)],
 )
 
 # Correlation ids + structured access logging.
@@ -56,6 +60,7 @@ app.add_middleware(
 register_exception_handlers(app)
 
 app.include_router(health_router)
+app.include_router(auth_router)
 app.include_router(disruption_router)
 app.include_router(warehouse_router)
 app.include_router(vehicle_router)

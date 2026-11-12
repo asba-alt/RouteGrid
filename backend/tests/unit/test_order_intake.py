@@ -269,7 +269,11 @@ async def test_update_status_rejects_cancellation_after_dispatch(repos):
 # --- review gaps: reservation fields, outbox payload, generic failure -------
 
 
-async def test_reservation_carries_warehouse_order_sku_and_no_group(repos):
+async def test_reservation_carries_warehouse_order_sku_and_no_group(repos, monkeypatch):
+    from app.core.config import settings
+
+    # Expiry is configuration-driven; pin it so this test is deterministic.
+    monkeypatch.setattr(settings, "RESERVATION_TTL_MINUTES", 0)
     wh_repo, order_repo, reservation_repo = repos
     warehouse_id, order_id = uuid4(), uuid4()
     session = make_session()

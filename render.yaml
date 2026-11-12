@@ -34,8 +34,14 @@ services:
         sync: false
       - key: CORS_ORIGINS
         sync: false
-      - key: API_KEY
+      - key: SESSION_SECRET
         sync: false
+      - key: OPERATOR_USERNAME
+        value: operator
+      - key: OPERATOR_PASSWORD_HASH
+        sync: false
+      - key: COOKIE_SAMESITE
+        value: none
       - key: RESERVATION_TTL_MINUTES
         value: "30"
 

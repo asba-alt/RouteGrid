@@ -33,12 +33,24 @@ class Settings(BaseSettings):
     # development falls back to the Vite dev server.
     CORS_ORIGINS: str = ""
 
-    # Shared API key required on every request when set. Empty means auth is
-    # DISABLED (local development only) — production must set it.
-    API_KEY: str = ""
+    # Session-cookie authentication. SESSION_SECRET signs session ids; set a
+    # long random value in production. Leaving OPERATOR_* unset leaves the API
+    # in development mode (no login required) — see core/auth.py.
+    SESSION_SECRET: str = ""
+    OPERATOR_USERNAME: str = "operator"
+    OPERATOR_PASSWORD: str = ""
+    OPERATOR_PASSWORD_HASH: str = ""
+    SESSION_TTL_MINUTES: int = 480
+    # "lax" works when the frontend proxies /api to the backend (same-origin).
+    # Use "none" only for a genuinely cross-site API — it requires HTTPS.
+    COOKIE_SAMESITE: str = "lax"
 
     # Minutes before an inventory hold expires. 0 disables expiry.
     RESERVATION_TTL_MINUTES: int = 0
+
+    @property
+    def auth_enabled(self) -> bool:
+        return bool(self.OPERATOR_PASSWORD_HASH or self.OPERATOR_PASSWORD)
 
     @property
     def is_production(self) -> bool:

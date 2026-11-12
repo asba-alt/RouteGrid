@@ -6,9 +6,8 @@
  * a sensible message plus the correlation id without ever leaking internals.
  */
 const BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
-// Optional shared API key. When the backend sets API_KEY, every request must
-// carry it; when unset, the backend runs in development (open) mode.
-const API_KEY = import.meta.env.VITE_API_KEY ?? "";
+
+export type CurrentUser = { id: string; name: string; role: string };
 
 export class ApiError extends Error {
   status: number;
@@ -205,11 +204,10 @@ async function rawRequest<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     response = await fetch(`${BASE}${path}`, {
       ...init,
-      headers: {
-        "Content-Type": "application/json",
-        ...(API_KEY ? { "X-API-Key": API_KEY } : {}),
-        ...(init?.headers ?? {}),
-      },
+      // The session lives in an HttpOnly cookie set by the backend; no secret is
+      // ever present in this bundle.
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
     });
   } catch {
     throw new ApiError(
@@ -220,6 +218,10 @@ async function rawRequest<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!response.ok) {
+    if (response.status === 401) {
+      // Session expired or absent: let the app drop back to the login screen.
+      window.dispatchEvent(new Event("routegrid:unauthorized"));
+    }
     let code = "error";
     let message = `Request failed (${response.status})`;
     let requestId: string | undefined;
@@ -278,6 +280,16 @@ const qs = (params: Record<string, string | number | boolean | undefined>) => {
 };
 
 export const api = {
+  // --- session auth ---
+  me: () => get<CurrentUser>("/api/v1/auth/me", 1),
+  login: (username: string, password: string) =>
+    rawRequest<CurrentUser>("/api/v1/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    }),
+  logout: () =>
+    rawRequest<{ ok: boolean }>("/api/v1/auth/logout", { method: "POST" }),
+
   health: () => get<Health>("/health"),
 
   warehouses: (operational?: boolean) =>
