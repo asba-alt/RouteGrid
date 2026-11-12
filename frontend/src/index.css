@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-slate-950 text-slate-200 antialiased;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-panel-line bg-panel-soft/70 shadow-sm;
+  }
+  .card-pad {
+    @apply p-5;
+  }
+  .label {
+    @apply text-[11px] font-medium uppercase tracking-wider text-slate-500;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-panel-line
+      bg-slate-800/60 px-3.5 py-2 text-sm font-medium text-slate-200 transition
+      hover:bg-slate-700/70 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply border-transparent bg-indigo-600 text-white hover:bg-indigo-500;
+  }
+  .input {
+    @apply w-full rounded-lg border border-panel-line bg-slate-900/70 px-3 py-2 text-sm
+      text-slate-100 placeholder:text-slate-500 focus:border-indigo-500 focus:outline-none;
+  }
+  .th {
+    @apply px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500;
+  }
+  .td {
+    @apply px-4 py-2.5 text-sm text-slate-300;
+  }
+}
+
+/* Leaflet needs an explicit height and a dark-tuned wrapper. */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  background: #0b1220;
+}

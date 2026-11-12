@@ -1,0 +1,54 @@
+# Render blueprint for the RouteGrid API.
+#
+# Deploy with: Render Dashboard → New → Blueprint → point at this repository.
+# PostGIS: Render's managed Postgres includes the extension; the migration
+# enables it (`CREATE EXTENSION IF NOT EXISTS postgis`).
+#
+# Free-tier notes (verify current pricing before deploying):
+#   - web services sleep after inactivity (cold start on first request)
+#   - free Postgres instances are time-limited
+#   - Redis free instances are small but sufficient for position caching
+#
+# Do not commit real credentials: every secret below is `sync: false`, which
+# makes Render prompt for the value instead of storing it in git.
+services:
+  - type: web
+    name: routegrid-api
+    runtime: docker
+    plan: free
+    region: oregon
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_URL_SYNC
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: API_KEY
+        sync: false
+      - key: RESERVATION_TTL_MINUTES
+        value: "30"
+
+  - type: redis
+    name: routegrid-redis
+    plan: free
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
+
+  - type: pserv
+    name: routegrid-db
+    plan: free
+    region: oregon
+    postgresMajorVersion: "16"
+    ipAllowList: []

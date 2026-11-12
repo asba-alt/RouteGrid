@@ -36,3 +36,11 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Test / tooling caches
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Command Code local state
+.commandcode/

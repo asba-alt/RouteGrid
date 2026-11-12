@@ -1,0 +1,41 @@
+[project]
+name = "routegrid"
+version = "0.1.0"
+description = "RouteGrid — real-time urban logistics optimization and delivery management platform."
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]",
+    "sqlalchemy[asyncio]>=2.0",
+    "asyncpg",
+    "psycopg2-binary",
+    "alembic",
+    "geoalchemy2",
+    "shapely",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "redis>=5.0",
+    "ortools",
+    "httpx",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "httpx",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"

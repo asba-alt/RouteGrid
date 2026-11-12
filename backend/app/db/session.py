@@ -1,30 +1,26 @@
-"""Lightweight SQLAlchemy session factory helpers.
+from typing import AsyncGenerator, Optional
 
-These helpers are a tiny scaffolding convenience and intentionally do not
-wire environment variables at import time. Callers should provide the engine
-object created by `engine.create_engine_from_url`.
-"""
-from contextlib import contextmanager
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+)
 
-
-def make_session_factory(engine, *, expire_on_commit: bool = False):
-    """Return a sessionmaker bound to the provided engine.
-
-    Keep configuration minimal here so migration scripts and application code
-    can import the factory without causing runtime side-effects.
-    """
-    return sessionmaker(bind=engine, expire_on_commit=expire_on_commit)
+async_session_factory: Optional[async_sessionmaker[AsyncSession]] = None
 
 
-@contextmanager
-def get_session(session_factory) -> Session:
-    sess = session_factory()
-    try:
-        yield sess
-        sess.commit()
-    except Exception:
-        sess.rollback()
-        raise
-    finally:
-        sess.close()
+def init_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
+    global async_session_factory
+    async_session_factory = async_sessionmaker(
+        bind=engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+    return async_session_factory
+
+
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    if async_session_factory is None:
+        raise RuntimeError("Session factory is not initialized")
+    async with async_session_factory() as session:
+        yield session
